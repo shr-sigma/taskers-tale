@@ -3,10 +3,59 @@ const tasksService = require('../services/tasksService');
 // Controller method to get all tasks
 const getAllTasks = async (req, res) => {
   try {
-    const tasks = await tasksService.getAllTasks({
-      sortBy: req.query.sortBy,
-      orderBy: req.query.orderBy
-    });
+    const filters = {};
+    const sortOrder = [];
+    let include = false
+
+    for (const key in req.query) {
+      if (key === 'sortBy' || key === 'orderBy') {
+        sortOrder.push(req.query[key]);
+      } else if (key === 'include') {
+        include = req.query.include;
+      } else {
+        filters[key] = req.query[key];
+      }
+    }
+
+    const tasks = await tasksService.getAllTasks(filters, sortOrder, include);
+    res.json(tasks);
+  } catch (error) {
+    console.log(error)
+    res.status(error.status).json({ error: error.message });
+  }
+};
+
+const getAllTaskNames = async (req, res) => {
+  try {
+   const tasks = await tasksService.getAllTaskNames();
+    res.json(tasks);
+  } catch (error) {
+    console.log(error)
+    res.status(error.status).json({ error: error.message });
+  }
+};
+
+const getTaskById = async (req, res) => {
+  try {
+    const tasks = await tasksService.getTaskById(
+      req.params.id,
+      req.query.fetchSubtasks,
+      req.query.fetchlogs
+    );
+    res.json(tasks);
+  } catch (error) {
+    console.log(error)
+    res.status(error.status).json({ error: error.message });
+  }
+};
+
+const getTaskByName = async (req, res) => {
+  try {
+    const tasks = await tasksService.getTaskByName(
+      req.params.name,
+      req.query.fetchSubtasks,
+      req.query.fetchlogs
+    );
     res.json(tasks);
   } catch (error) {
     console.log(error)
@@ -53,6 +102,9 @@ const deleteTask = async (req, res) => {
 
 module.exports = {
   getAllTasks,
+  getAllTaskNames,
+  getTaskById,
+  getTaskByName,
   createTask,
   updateTask,
   deleteTask

@@ -1,62 +1,117 @@
-const { getClient } = require('./index');
+const { Sequelize, DataTypes } = require('sequelize');
+const sequelize = require('./index').getSequelize();
+// const subtask = require('./subtask')
 
-// Model method to get all tasks
-const getAllTasks = async (sortBy = 'priority', orderBy = 'ASC') => {
-  try {
-    const client = getClient();
-    const query = `SELECT * FROM "task" ORDER BY ${sortBy} ${orderBy}` ;
-    const result = await client.query(query);
-    return result.rows;
-  } catch (error) {
-    console.log(error)
-    throw error;
+const task = sequelize.define('task', {
+  id: {
+    type: DataTypes.UUID,
+    primaryKey: true,
+    defaultValue: DataTypes.UUIDV4,
+  },
+  task: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  description: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+  },
+  streak: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 0
+  },
+  totalDays: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 0
+  },
+  priority: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+  },
+},
+  {
+    timestamps: true,
+  },
+  {
+    tableName: 'task'
   }
-};
+);
 
-// Model method to create a new task
-const createTask = async (taskData) => {
-  try {
-    const client = getClient();
-    const query = `
-      INSERT INTO "task" (task, description, priority)
-      VALUES ($1, $2, $3)
-      RETURNING *
-    `;
-    const values = [
-      taskData.task,
-      taskData.description,
-      taskData.priority,
-    ];
-    const result = await client.query(query, values);
-    return result.rows[0];
-  } catch (error) {
-    console.log(error)
-    throw error;
+const subtask = sequelize.define('subtask', {
+  id: {
+    type: DataTypes.UUID,
+    primaryKey: true,
+    defaultValue: DataTypes.UUIDV4,
+  },
+  taskId: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  description: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+  },
+  subtask: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  isActive: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false
+  },
+  startDate: {
+    type: DataTypes.DATE,
+    allowNull: true,
+  },
+  endDate: {
+    type: DataTypes.DATE,
+    allowNull: true,
+  },
+},
+{
+  timestamps: false
+},
+  {
+    tableName: 'subtask'
   }
-};
+);
 
-const updateTaskMetaData = async (taskId, updates) => {
-    try {
-      const client = getClient();
-      const query = `
-      UPDATE "task"
-      SET
-        description = COALESCE($1, description),
-        priority = COALESCE($2, priority)
-      WHERE Id = $3
-      RETURNING *;
-    `;
-      const values = [updates.description, updates.priority, taskId];
-      const result = await client.query(query, values);
-      return result.rows[0];
-    } catch (error) {
-      throw error;
-    }
-  };
-  
+const log = sequelize.define('log', {
+  id: {
+    type: DataTypes.UUID,
+    primaryKey: true,
+    defaultValue: DataTypes.UUIDV4,
+  },
+  subtaskId: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  comments: {
+    type: DataTypes.TEXT,
+    allowNull: false,
+  },
+},
+{
+  timestamps: true,
+
+},
+  {
+    tableName: 'log'
+  }
+);
+
+task.hasMany(subtask, { foreignKey: 'taskId' });
+log.belongsTo(subtask, { foreignKey: 'subtaskId' });
+subtask.hasMany(log, { foreignKey: 'subtaskId' });
+subtask.belongsTo(task, { foreignKey: 'taskId' });
+log.belongsTo(subtask, { foreignKey: 'subtaskId' });
 
 module.exports = {
-  getAllTasks,
-  createTask,
-  updateTaskMetaData
-};
+  task,
+  subtask,
+  log
+}
+
